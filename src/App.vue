@@ -1,17 +1,20 @@
 <template>
   <div id="app">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <Header-Container></Header-Container>
+    <Feature/>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import Feature from './components/Feature.vue'
+import HeaderContainer from './components/HeaderContainer.vue'
 import WebStorage from './common/WebStorage.js'
 
 export default {
   name: 'app',
   components: {
-    HelloWorld
+    Feature,
+    HeaderContainer
   },
   created() {
     if (navigator.geolocation) {
@@ -32,14 +35,14 @@ export default {
 }
 </script>
 
-<style>
-@import './assets/scss/global.scss'
+<style lang="scss">
+@import './assets/scss/global.scss';
+
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
 }
 </style>
