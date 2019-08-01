@@ -1,58 +1,158 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+  <div>
+    Hi
+    <div class="autocomplete">
+      <input type="text" v-model="search" @keyup="fetchCityList(search, 'userinput')"/>
+      <ul  class="autocomplete-results" v-show="showSuggestedCitites">
+        <li  class="autocomplete-result" v-for="(city, i) in citySearch" :key="i" @click="captureCity(city)">
+          {{ city.cityName }}
+        </li>
+      </ul>
+    </div>
+
+    <select v-show="showSuggestedCuisine" @change="captureCuisine($event)">
+      <option v-for="(cuisine, i) in cuisineList" :key="i" :value="cuisine.cuisineId">
+        {{ cuisine.cuisineName }}
+      </option>
+    </select>
+
+    <input type="range" min="1" max="5" v-model="guestRating" @change="filterRating()">
+
+    <div class="restaurant-container" v-if="restaurantList.length >= 1">
+      <div class="restaurant" v-for="(restaurant,index) in restaurantList" :key="index">
+        <span class="rating">{{restaurant.user_rating.aggregate_rating}}</span>
+        <img :src="restaurant.featured_image"/>
+        <p>{{restaurant.name}} </p>
+        <div class="address">
+          {{restaurant.location.address}}, {{restaurant.location.city}}
+        </div>
+        <p>{{restaurant.cuisines}} </p>
+      </div>
+    </div>
+    <div v-else>
+      Sorry. No restaurants to display!
+    </div>
+
+    <div>
+      <button @click="clearFilter">Clear Filter</button>
+    </div>
   </div>
 </template>
-
 <script>
+import Service from '../Service/Service.js'
 export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
-  }
+  data() {
+    return {
+      citySearch : [],
+      cuisineList : [],
+      search: 'Pune',
+      showSuggestedCitites : false,
+      showSuggestedCuisine : false,
+      restaurantList : [],
+      allRestaurants : [],
+      sortedList : [],
+      guestRating : 2.5
+    };
+  },
+  methods: {
+    clearFilter() {
+      this.restaurantList = this.allRestaurants;
+    },
+    fetchCityList(city, userinput) {
+      let self = this;
+      Service.getCities(this.search).then(res => {
+        let cities = res.data.location_suggestions;
+        this.citySearch = cities.map(city => {
+          return { cityName: city.name,cityId : city.id }
+        });
+        if(userinput) {
+          this.showSuggestedCitites = true;
+        } else {
+          self.captureCity(self.citySearch[0])
+        }
+      });
+    },
+    captureCity(city) {
+      this.search = city ? city.cityName : this.search;
+      this.showSuggestedCitites = false;
+      Service.getCuisines(city.cityId).then(res => {
+        this.cuisineList = res.data.cuisines.map(cuisine => {
+          return { cuisineName: cuisine.cuisine.cuisine_name, cuisineId : cuisine.cuisine.cuisine_id }
+        });
+        this.showSuggestedCuisine = true;
+        this.captureCuisine();
+      });
+    },
+    captureCuisine(e) {
+      let cuisine = e ? e.target.value : 1035;
+      Service.getRestaurantList(cuisine).then(res => {
+        this.allRestaurants = res.data.restaurants;
+        this.restaurantList = this.allRestaurants;
+      });
+    },
+    filterRating() {
+      let self = this;
+      this.sortedList = this.allRestaurants.filter(item => (Math.round(item.user_rating.aggregate_rating) == self.guestRating));
+      this.restaurantList = this.sortedList;
+    }
+  },
+  created() {
+    this.fetchCityList();
+
+  },
 }
 </script>
+<style lang="scss">
+  .autocomplete {
+    position: relative;
+    width: 130px;
+  }
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-h3 {
-  margin: 40px 0 0;
+  .autocomplete-results {
+    padding: 0;
+    margin: 0;
+    border: 1px solid #eeeeee;
+    height: 120px;
+    overflow: auto;
+  }
+
+  .autocomplete-result {
+    list-style: none;
+    text-align: left;
+    padding: 4px 2px;
+    cursor: pointer;
+  }
+
+  .autocomplete-result:hover {
+    background-color: #4AAE9B;
+    color: white;
+  }
+  ul {
+  list-style: none;
 }
-ul {
-  list-style-type: none;
-  padding: 0;
+.restaurant-container {
+  display: flex;
+  flex-wrap: wrap;
+  width: 80%;
+  margin: auto;
+  .restaurant {
+    border: 3px solid #e0dbdb;
+    border-radius: 3px;
+    width: 15%;
+    position: relative;
+    .rating {
+      position: absolute;
+      right: 0;
+      background-color: #73c12b;
+      color: white;
+      font-size: large;
+      padding: 2px;
+      margin: 2px;
+    }
+    img {
+      width: 100%;
+    }
+  }
 }
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
+
 </style>
