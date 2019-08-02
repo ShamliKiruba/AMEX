@@ -1,4 +1,4 @@
-const local_Storage = window.sessionStorage; //instead of local storage we are using session storage as localstorage was cleared when naviagated to different zappID deeplinks
+const local_Storage = window.localStorage; //instead of local storage we are using session storage as localstorage was cleared when naviagated to different zappID deeplinks
 
 export default {
   get(itemName) {

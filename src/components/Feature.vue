@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="background">
-      <div class="overlay">
+      <div class="over-layer">
         <div class="logo">
           <img src="https://b.zmtcdn.com/images/logo/zomato-us-logo.png?output-format=webp"/>
         </div>
@@ -10,7 +10,7 @@
           <div class="city">
             <p>Search for city:</p>
             <div class="autocomplete">    
-              <input type="text" v-model="search" @input="fetchCityList('userInput', search)" placeholder="Enter your city"/>
+              <input type="text" v-model="search" @input="debounceSearch('userInput', search)" placeholder="Enter your city"/>
               <ul v-show="showSuggestedCitites">
                 <li v-for="(city, i) in citySearch" :key="i" @click="captureCity(city)">
                   {{ city.cityName }}
@@ -51,7 +51,7 @@
               <p class="address-city">{{restaurant.restaurant.location.city}}</p>
               
             </div>
-            <span class="sub-title">{{cuisineName(restaurant.restaurant.cuisines)}} </span>
+            <span class="sub-title">{{restaurant.restaurant.cuisines.split(',')[0]}} </span>
           </div>
         </div>
       </div>
@@ -79,43 +79,79 @@ export default {
     };
   },
   methods: {
-    cuisineName(cuisine) {
-      let temp = cuisine.split(',');
-      return temp[0];
-    },
     clearFilter() {
       this.restaurantList = this.allRestaurants;
+    },
+    debounceSearch(triggeredFrom, city) {
+      if (this.timeout) clearTimeout(this.timeout); 
+      let self = this;      
+      this.timeout = setTimeout(() => {
+        this.fetchCityList(triggeredFrom, city)
+      }, 500);
     },
     fetchCityList(triggeredFrom, city) {
       let self = this;
       Service.getCities(this.search).then(res => {
-        let cities = res.data.location_suggestions;
-        this.citySearch = cities.map(city => {
-          return { cityName: city.name,cityId : city.id }
-        });
-        if(triggeredFrom == 'userInput' && this.search) {
-          this.showSuggestedCitites = true;
-        } else if(triggeredFrom == 'initialRender') {
-          self.captureCity(self.citySearch[0])
+        WebStorage.setCollection('CITY_LIST', res.data.location_suggestions);
+        this.handleCityList(triggeredFrom, city);
+      })
+      .catch(err => {
+        if(WebStorage.getCollection('CITY_LIST')) {
+          this.handleCityList(triggeredFrom, city);
+        } else {
+          self.$parent.$emit('ERROR_MODAL');
         }
       });
+    },
+    handleCityList(triggeredFrom, city) {
+      let cities = WebStorage.getCollection('CITY_LIST');
+      this.citySearch = cities.map(city => {
+        return { cityName: city.name,cityId : city.id }
+      });
+      if(triggeredFrom == 'userInput' && this.search) {
+        this.showSuggestedCitites = true;
+      } else if(triggeredFrom == 'initialRender') {
+        this.captureCity(this.citySearch[0])
+      }
     },
     captureCity(city) {
       this.search = city ? city.cityName : this.search;
       this.showSuggestedCitites = false;
       Service.getCuisines(city.cityId).then(res => {
-        this.cuisineList = res.data.cuisines.map(cuisine => {
-          return { cuisineName: cuisine.cuisine.cuisine_name, cuisineId : cuisine.cuisine.cuisine_id }
-        });
-        this.showSuggestedCuisine = true;
-        this.captureCuisine();
+        WebStorage.setCollection('CUISINE_LIST', res.data.cuisines);
+        this.handleCuisineList(city);
+      })
+      .catch(err => {
+        if(WebStorage.getCollection('CUISINE_LIST')) {
+          this.handleCuisineList(city);
+        } else {
+          self.$parent.$emit('ERROR_MODAL');
+        }
       });
+    },
+    handleCuisineList(city) {
+      let cuisineList = WebStorage.getCollection('CUISINE_LIST');
+      this.cuisineList = cuisineList.map(cuisine => {
+        return { cuisineName: cuisine.cuisine.cuisine_name, cuisineId : cuisine.cuisine.cuisine_id }
+      });
+      this.showSuggestedCuisine = true;
+      this.captureCuisine();
     },
     captureCuisine(e) {
       let cuisine = e ? e.target.value : 1035;
       Service.getRestaurantList(cuisine).then(res => {
         this.allRestaurants = res.data.restaurants;
+        WebStorage.setCollection('RESTAURANT_LIST', this.allRestaurants);
         this.restaurantList = this.allRestaurants;
+      })
+      .catch(err => {
+        let restaurantList = WebStorage.getCollection('RESTAURANT_LIST');
+        if(restaurantList) {
+          this.allRestaurants = restaurantList;
+          this.restaurantList = restaurantList;
+        } else {
+          self.$parent.$emit('ERROR_MODAL');
+        }
       });
     },
     filterRating() {
@@ -135,7 +171,7 @@ export default {
   background-image: url(https://b.zmtcdn.com/images/foodshots/cover/pizza3.jpg?output-format=webp);
   background-size: cover;
   height: 400px;
-  .overlay {
+  .over-layer {
       position: relative;
       background: rgba(0,0,0,0.4);
       height: 100%;

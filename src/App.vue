@@ -2,21 +2,39 @@
   <div id="app">
     <Header-Container></Header-Container>
     <Feature/>
+    <Modal v-if="showModal"/>
   </div>
 </template>
 
 <script>
 import Feature from './components/Feature.vue'
 import HeaderContainer from './components/HeaderContainer.vue'
+import Modal from './components/Modal.vue'
 import WebStorage from './common/WebStorage.js'
 
 export default {
   name: 'app',
+  data() {
+    return {
+      showModal: false
+    }
+  },
   components: {
     Feature,
-    HeaderContainer
+    HeaderContainer,
+    Modal
+  },
+  methods: {
+    toggleModal(action) {
+      if(!action) {
+        this.showModal = true;
+      } else {
+        this.showModal = false;
+      }
+    }
   },
   created() {
+    this.$on('ERROR_MODAL', this.toggleModal);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(function(position) {
         console.log('position: ', position);

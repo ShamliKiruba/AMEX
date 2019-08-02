@@ -1,6 +1,5 @@
 const _initializeEnv = () => {
-  return 'LOCAL';
-  // return window.location.hostname === 'localhost'  ? 'LOCAL' : 'PROD';
+  return window.location.hostname === 'localhost'  ? 'LOCAL' : 'PROD';
 };
 
 const _isLocalHost = () => window.location.hostname === 'localhost';

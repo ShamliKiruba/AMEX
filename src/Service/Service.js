@@ -14,9 +14,11 @@ export default {
         return Proteus().get(URLS.getCities() + payload);
     },
     getCuisines(cityId) {
+        WebStorage.set('CITY', cityId);
         return Proteus().get(URLS.getCuisines()+ '?city_id=' + cityId);
     },
     getRestaurantList(cuisine) {
-        return Proteus().get(URLS.getRestaurantList()+ '?entity_type=zone&cuisines=' + cuisine);
+        let entity_id = WebStorage.get('CITY');
+        return Proteus().get(URLS.getRestaurantList()+ '?entity_id=' + entity_id + '&entity_type=city&cuisines=' + cuisine);
     },
 }
