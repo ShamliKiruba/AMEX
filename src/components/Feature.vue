@@ -10,7 +10,7 @@
           <div class="city">
             <p>Search for city:</p>
             <div class="autocomplete">    
-              <input type="text" v-model="search" @input="fetchCityList(search, 'userinput')"/>
+              <input type="text" v-model="search" @input="fetchCityList('userInput', search)" placeholder="Enter your city"/>
               <ul v-show="showSuggestedCitites">
                 <li v-for="(city, i) in citySearch" :key="i" @click="captureCity(city)">
                   {{ city.cityName }}
@@ -33,20 +33,26 @@
     <div class="range-slider">
       <p>Filter on Guest Rating:</p>
       <input type="range" min="1" max="5" class="slider" v-model="guestRating" @change="filterRating()">
-      <button @click="clearFilter">Clear Filter</button>
+      <button @click="clearFilter">Clear</button>
     </div>
     
 
     <div class="restaurant-container" v-if="restaurantList.length >= 1">
       <div class="restaurant" v-for="(restaurant,index) in restaurantList" :key="index">
-        <img :src="restaurant.featured_image"/>
-        <span class="rating">{{restaurant.user_rating.aggregate_rating}}</span>
-        <div class="desc">
-          <p class="title">{{restaurant.name}} </p>
-          <div class="address">
-            {{restaurant.location.address}}, {{restaurant.location.city}}
+        <div class="left">
+          <img :src="restaurant.restaurant.featured_image || 'https://d.zmtcdn.com/data/pictures/chains/8/16774318/a54deb9e4dbb79dd7c8091b30c642077_featured_v2.png'"/>                    
+        </div>
+        <div class="right">
+          <p class="rating">{{restaurant.restaurant.user_rating.aggregate_rating}}</p>
+          <div class="desc">
+            <p class="title">{{restaurant.restaurant.name.toUpperCase()}} </p>
+            <div class="address sub-title">
+              <p class="locality"> {{restaurant.restaurant.location.locality}}, </p>
+              <p class="address-city">{{restaurant.restaurant.location.city}}</p>
+              
+            </div>
+            <span class="sub-title">{{cuisineName(restaurant.restaurant.cuisines)}} </span>
           </div>
-          <p>{{restaurant.cuisines}} </p>
         </div>
       </div>
     </div>
@@ -56,7 +62,8 @@
   </div>
 </template>
 <script>
-import Service from '../Service/Service.js'
+import Service from '../Service/Service.js';
+import WebStorage from '../common/WebStorage.js';
 export default {
   data() {
     return {
@@ -72,19 +79,23 @@ export default {
     };
   },
   methods: {
+    cuisineName(cuisine) {
+      let temp = cuisine.split(',');
+      return temp[0];
+    },
     clearFilter() {
       this.restaurantList = this.allRestaurants;
     },
-    fetchCityList(city, userinput) {
+    fetchCityList(triggeredFrom, city) {
       let self = this;
       Service.getCities(this.search).then(res => {
         let cities = res.data.location_suggestions;
         this.citySearch = cities.map(city => {
           return { cityName: city.name,cityId : city.id }
         });
-        if(userinput && this.search) {
+        if(triggeredFrom == 'userInput' && this.search) {
           this.showSuggestedCitites = true;
-        } else {
+        } else if(triggeredFrom == 'initialRender') {
           self.captureCity(self.citySearch[0])
         }
       });
@@ -109,12 +120,12 @@ export default {
     },
     filterRating() {
       let self = this;
-      this.sortedList = this.allRestaurants.filter(item => (Math.round(item.user_rating.aggregate_rating) == self.guestRating));
+      this.sortedList = this.allRestaurants.filter(item => (Math.round(item.restaurant.user_rating.aggregate_rating) == self.guestRating));
       this.restaurantList = this.sortedList;
     }
   },
   created() {
-    this.fetchCityList();
+    this.fetchCityList('initialRender');
 
   },
 }
@@ -162,9 +173,9 @@ export default {
   .autocomplete {
     position: relative;
     background-color: white;
-    border-radius: 5px;
     margin: 20px 0;
     input  {
+      border-radius: 5px;
       text-align: center;
       font-size: 18px;
       color: black;
@@ -201,8 +212,7 @@ export default {
 }
 
 .range-slider {
-  width: 40%;
-  margin: 50px auto;
+  margin: 3% 25%;
   display: flex;
   p {
     width: 30%;
@@ -212,33 +222,27 @@ export default {
     line-height: 1.3em;
   }
   .slider {
+    margin:5px;
     width: 40%;
     -webkit-appearance: none;
     width: 50%;
-    height: 20px;
-    background: #ff3043;
+    height: 7px;
+    background: #ea0048;
     outline: none;
-    opacity: 0.7;
     -webkit-transition: .2s;
     transition: opacity .2s;
   }
-
-  .slider:hover {
-    opacity: 1;
-  }
-
   .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 20px;
     height: 20px;
-    background: white;
+    background: black;
     border-radius: 10px;
     cursor: pointer;
   }
   button {
-    margin: -3px 10px;
-    width: 15%;
+    margin: -6px 10px;
     height: 30px;
   }
 }
@@ -248,35 +252,72 @@ export default {
   width: 90%;
   margin: auto;
   .restaurant {
-    border: 3px solid #e0dbdb;
+    border: 3px solid #f70a0a;
     border-radius: 3px;
     width: 25%;
     margin: 2%;
-    height: 30%;
+    height: 120px;
     position: relative;
-    .rating {
-      position: absolute;
-      right: 0;
-      background-color: #73c12b;
-      color: white;
-      font-size: large;
-      padding: 2px;
-      margin: 2px;
-    }
     img {
       width: 40%;
       float: left;
-      height:100%;
+      height:114px;
     }
-    .desc {
-      padding: 5px;
-      margin-top: 3%;
-      .title {
-        font-weight: 700;
-        font-size: 18px;
+    .right {
+      display: flex;
+      .rating {
+        position: absolute;
+        right: 0;
+        background-color: #73c12b;
+        color: white;
+        font-size: large;
+        padding: 2px;
+        margin: 2px;
+      }
+      .desc {
+        width: 90%;
+        text-align: left;
+        padding: 10px;
+        line-height: 1.1em;
+        .title {
+          width:90%;
+          font-weight: 700;
+          font-size: 16px;
+        }
+        .sub-title {
+          font-size: 12px;
+        }
       }
     }
   }
 }
 
+@media only screen and (max-width: 490px) {
+  .background {
+    height:470px;
+  }
+  .restaurant-container .restaurant {
+    width: 90%;
+  }
+  .search {
+    flex-direction: column;
+    .autocomplete input, select, p {
+      font-size: 18px;
+    }
+  }
+} 
+
+@media (min-width: 491px) and (max-width: 900px) {
+  .restaurant-container .restaurant {
+    width: 45%;
+    .locality {
+      display: none;
+    }
+  }
+}
+@media screen and (min-width: 900px) {
+  .restaurant-container .restaurant {
+    width: 29%;
+  }
+}
 </style>

@@ -17,6 +17,6 @@ export default {
         return Proteus().get(URLS.getCuisines()+ '?city_id=' + cityId);
     },
     getRestaurantList(cuisine) {
-        return Proteus().get(URLS.getRestaurantList()+ '?entity_id=94741&entity_type=zone&cuisines=' + cuisine);
+        return Proteus().get(URLS.getRestaurantList()+ '?entity_type=zone&cuisines=' + cuisine);
     },
 }

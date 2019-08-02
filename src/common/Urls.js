@@ -12,9 +12,9 @@ export default {
     return `${URL[CURRENT_ENV]}/cities`;
   },
   getCuisines() {
-    return `${URL[CURRENT_ENV]}/zomato/cuisines`;
+    return `${URL[CURRENT_ENV]}/cuisines`;
   },
   getRestaurantList() {
-    return `${URL[CURRENT_ENV]}/zomato/search`;
+    return `${URL[CURRENT_ENV]}/search`;
   }
 }
